@@ -12,23 +12,25 @@ struct MessageView: View {
     var body: some View {
         HStack(spacing: 16) {
             Circle()
-                .frame(width: 65, height: 65)
+                .frame(width: 60, height: 60)
             
             VStack(alignment: .leading) {
+                //Martin Randolph
                 Text("\(user.firstName) \(user.lastName)")
-                    .font(.system(size: 22))
+                    .font(.system(size: 17, weight: .medium))
+                    .tracking(-0.4)
+                    .foregroundColor(.black)
                 HStack(spacing: 1){
-                    Text("I tak musze iść na ten wykład po")
-                        .font(.system(size: 15))
+                    Text("You: What’s man!")
+                        .font(.system(size: 14, weight: .regular))
                         .foregroundColor(Color(.lightGray))
                     Image(systemName: "circle.fill")
                         .font(.system(size: 2))
                         .foregroundColor(Color(.lightGray))
                     Text("Wed")
-                        .font(.system(size: 15))
+                        .font(.system(size: 14, weight: .regular))
                         .foregroundColor(Color(.lightGray))
                         .padding(.leading, 5)
-                    
                 }
             }
             Spacer()

@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ChatView: View {
+    //It is supposed to be @StateObject wrapper but realtime fetching did not work when wrapped
     @ObservedObject var vm = ChatViewModel()
     
     @State var content: String = ""
@@ -20,16 +21,7 @@ struct ChatView: View {
                         MessageBubble(message: message)
                     }
                 }
-                HStack{
-                    Image(systemName: "photo")
-                    TextField("Aa", text: $content)
-                        .padding()
-                        .border(.black)
-                    Button("Send"){
-                        vm.sendMessage(content: content, to: user.unwrapedId)
-                    }.buttonStyle(.bordered)
-                }
-                .padding()
+                MessageField(vm: vm, user: user, content: $content)
                 
             }
             .onAppear{vm.fetchMessages(to: user.unwrapedId)}

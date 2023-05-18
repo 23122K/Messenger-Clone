@@ -12,7 +12,7 @@ struct ContentView: View {
     var body: some View {
         switch(vm.isAuthenticated){
         case false:
-            WelcomeView()
+            SignInView()
         case true:
             ChatListView()
                 .environmentObject(vm)

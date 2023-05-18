@@ -17,27 +17,36 @@ struct ChatListView: View {
         NavigationView {
             VStack{
                 if(!isClicked){
-                    UserNavigationBar()
+                    NavigationBar()
                         .animation(.easeIn(duration: 5), value: isClicked)
                 }
-                ScrollView {
-                    VStack {
-                        SearchBar(userInput: $text, isUsed: $isClicked)
-                            .onTapGesture {
-                                isClicked = true
-                            }
-                            .onSubmit {
-                                vm.searchUser(name: text)
-                            }
-                        ForEach(vm.listOfUsers) { user in
-                            NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
-                                MessageView(user: user)
-                                    .animation(Animation.spring())
-                            })
+                ScrollView(showsIndicators: false, content: {
+                    SearchBar(userInput: $text, isUsed: $isClicked)
+                        .onTapGesture {
+                            isClicked = true
                         }
-                        Spacer()
+                        .onSubmit {
+                            vm.searchUser(name: text)
+                        }
+                    ScrollView(.horizontal, showsIndicators: false, content: {
+                        HStack{
+                            ForEach(vm.listOfUsers){ user in
+                                NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
+                                    Bubble(user: user)
+                                        .padding(.trailing)
+                                })
+                            }
+                        }
+                        .padding(.top, 10)
+                        .padding(.horizontal)
+                    })
+                    ForEach(vm.listOfUsers){ user in
+                        NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
+                            MessageView(user: user)
+                                .padding(.trailing)
+                        })
                     }
-                }
+                })
             }
         }
     }
