@@ -17,10 +17,10 @@ class ChatViewModel: ObservableObject {
     
     
     func fetchMessages(to: String){
-        model.fetchMessages(to: to)
+        model.fetchMessages(sendTo: to)
     }
     
-    func sendMessage(content: String, to: String){
-        model.sendMessage(content: content, to: to)
+    func sendMessage(content: String, sendTo: String){
+        model.sendMessage(content: content, sendTo: sendTo)
     }
 }

@@ -18,10 +18,12 @@ struct MessageField: View {
             switch isActive {
             case true:
                 Image(systemName: "chevron.right")
+                    .bold()
                     .font(.system(size: 25))
                     .foregroundColor(.blue.opacity(0.9))
                     .onTapGesture {
                         isActive = false
+                        content = ""
                     }
             case false:
                 Image("Camera")
@@ -47,14 +49,18 @@ struct MessageField: View {
             
             switch isActive {
             case true:
-                Image(systemName: "chevron.left")
+                Image("Send")
                     .onTapGesture {
-                        vm.sendMessage(content: content, to: user.unwrapedId)
+                        vm.sendMessage(content: content, sendTo: user.unwrapedId)
+                        content = ""
                     }
             case false:
                 Image(systemName: "heart.fill")
                     .font(.system(size: 25))
                     .foregroundColor(.blue.opacity(0.9))
+                    .onTapGesture {
+                        vm.sendMessage(content: "💙", sendTo: user.unwrapedId)
+                    }
             }
         }
         .padding(.horizontal)

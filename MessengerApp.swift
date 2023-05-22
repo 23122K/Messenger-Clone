@@ -9,12 +9,7 @@ import SwiftUI
 import Firebase
 @main
 struct MessengerApp: App {
-    
-    //Initialising firebase 
-    init() {
-        FirebaseApp.configure()
-    }
-    
+    init() { FirebaseApp.configure() }
     var body: some Scene {
         WindowGroup {
             ContentView()

@@ -12,16 +12,17 @@ import FirebaseAuthCombineSwift
 
 class AuthenticationService: ObservableObject {
 
-    @Published var user: User?
-    @Published var isAuthenticated = false
-    @Published var userData: UserData? 
-    
+    private var auth: Auth
     private var cancellables = Set<AnyCancellable>()
     private var handle: AuthStateDidChangeListenerHandle?
     
+    @Published var user: User?
+    @Published var isAuthenticated = false
+    @Published var userData: UserData?
+    
     func signIn(email: String, password: String) -> AnyPublisher<Void, Error> {
         return Future<Void, Error> { promise in
-            Auth.auth().signIn(withEmail: email, password: password)
+            self.auth.signIn(withEmail: email, password: password)
                 .sink(receiveCompletion: { completion in
                     switch(completion) {
                     case .failure(let error):
@@ -40,13 +41,14 @@ class AuthenticationService: ObservableObject {
     
     func signUp(email: String, password: String, firstName: String, lastName: String) -> AnyPublisher<Void, Error>{
         return Future<Void, Error> { promise in
-            Auth.auth().createUser(withEmail: email, password: password)
+            self.auth.createUser(withEmail: email, password: password)
                 .sink(receiveCompletion: { completion in
                     switch completion {
                     case .failure(let error):
                         promise(.failure(error))
                     case .finished:
                         self.isAuthenticated = true
+                        promise(.success(()))
                     }
                 }, receiveValue: { authDataResult in
                     self.user = authDataResult.user
@@ -57,7 +59,7 @@ class AuthenticationService: ObservableObject {
     }
     
     func signOut(){
-        Auth.auth().deauthorize()
+        self.auth.deauthorize()
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case.failure(let error):
@@ -69,6 +71,10 @@ class AuthenticationService: ObservableObject {
                 }
             }, receiveValue: { _ in})
             .store(in: &self.cancellables)
+    }
+    
+    init() {
+        self.auth = Auth.auth()
     }
     
 }

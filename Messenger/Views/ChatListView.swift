@@ -19,6 +19,9 @@ struct ChatListView: View {
                 if(!isClicked){
                     NavigationBar()
                         .animation(.easeIn(duration: 5), value: isClicked)
+                        .onAppear{
+                            vm.fetchChats()
+                        }
                 }
                 ScrollView(showsIndicators: false, content: {
                     SearchBar(userInput: $text, isUsed: $isClicked)
@@ -30,7 +33,7 @@ struct ChatListView: View {
                         }
                     ScrollView(.horizontal, showsIndicators: false, content: {
                         HStack{
-                            ForEach(vm.listOfUsers){ user in
+                            ForEach(vm.chats){ user in
                                 NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
                                     Bubble(user: user)
                                         .padding(.trailing)
@@ -40,11 +43,21 @@ struct ChatListView: View {
                         .padding(.top, 10)
                         .padding(.horizontal)
                     })
-                    ForEach(vm.listOfUsers){ user in
-                        NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
-                            MessageView(user: user)
-                                .padding(.trailing)
-                        })
+                    switch isClicked {
+                    case true:
+                        ForEach(vm.listOfUsers){ user in
+                            NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
+                                MessageView(user: user)
+                                    .padding(.trailing)
+                            })
+                        }
+                    case false:
+                        ForEach(vm.chats){ user in
+                            NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
+                                MessageView(user: user)
+                                    .padding(.trailing)
+                            })
+                        }
                     }
                 })
             }

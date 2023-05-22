@@ -9,26 +9,37 @@ import SwiftUI
 import Firebase
 
 struct SignUpView: View {
-    @State var isPresented = false
     @StateObject var vm = SignUpViewModel()
     var body: some View {
-        VStack(alignment: .leading) {
-            Text("Sign up")
-            TextField("Name", text: $vm.firstName)
-            Divider()
-            TextField("Surrname", text: $vm.lastName)
-            Divider()
-            TextField("Email", text: $vm.emailAddress)
-            Divider()
-            TextField("Password", text: $vm.password)
-            Button("Register"){
-                vm.signUp()
-            }
+        VStack(alignment: .leading, spacing: 1) {
+            Text("Create your accout")
+                .font(.system(size: 25, weight: .bold))
+                .padding(.leading)
+                .padding(.bottom)
+            CustomTextField(placeholder: "First name", corners: [.topLeft, .topRight], text: $vm.firstName)
+            CustomTextField(placeholder: "Last name", corners: [.bottomLeft, .bottomRight], text: $vm.lastName)
+                .padding(.bottom, 20)
+            
+            CustomTextField(placeholder: "Email address or phone number", corners: [.topLeft, .topRight, .bottomLeft, .bottomRight], text: $vm.emailAddress)
+                .padding(.bottom, 20)
+            
+            CustomSecureField(placeholder: "Password", corners: [.topLeft, .topRight], text: $vm.password)
+            CustomSecureField(placeholder: "Confirm password", corners: [.bottomLeft, .bottomRight], text: $vm.confirmPassword)
+                .padding(.bottom, 20)
+            
+            Checkbox(title: "Remember me", isChecked: $vm.rememberMe)
+                .padding(.bottom, 20)
+                .padding(.leading)
+            
+            PrimaryButton(isActive: vm.isActive, content: "Sign up")
+                .disabled(!vm.isActive)
+                .onTapGesture {
+                    if(vm.isActive){
+                        vm.signUp()
+                    }
+                }
+            Spacer()
         }
-        .fullScreenCover(isPresented: $isPresented, content: {
-            ImagePicker(image: $vm.image)
-        })
-        .padding()
     }
 }
 

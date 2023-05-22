@@ -13,41 +13,116 @@ import Combine
 
 class FirestoreManager: ObservableObject {
     private var db: Firestore
+    
+    private var cancellables = Set<AnyCancellable>()
     private var listener: ListenerRegistration?
     
     @Published var userData: UserData?
     
-    func storeUserData(firstName: String, lastName: String, user: User?) {
-        let usersCollection = db.collection("users")
-        
-        var userData: [String: Any] = [
-            "firstName": firstName,
-            "lastName": lastName
-        ]
-        
-        guard let user = user else {
-            print("No user found")
-            return
-        }
-        
-        let newUserRef = usersCollection.document(user.uid)
-        
-        
-        // Set the user data in the Firestore document
-        newUserRef.setData(userData) { error in
+    func setData<T: Codable>(data: T, referance: DocumentReference){
+        referance.setData(from: data.self)
+            .sink(receiveCompletion: { completion in
+                switch completion{
+                case .failure(let error):
+                    print(error)
+                case .finished:
+                    print("Data set succesfully")
+                }
+            }, receiveValue: { _ in })
+            .store(in: &cancellables)
+    }
+    
+    func updateData(data: [AnyHashable : Any], referance: DocumentReference){
+        referance.updateData(data) { error in
             if let error = error {
-                print("Error registering user data: \(error.localizedDescription)")
+                print(error)
             } else {
-                print("User data registered successfully!")
+                print("Data updated")
             }
         }
     }
     
+    func setImage(imageURL: String, uid: String) {
+        let data = ["imageURL" : imageURL]
+        let referance = db.collection("users").document(uid)
+        referance.updateData(data) { error in
+            if let error = error{
+                print(error)
+            }
+        }
+    }
     
+    func setUserData(data: UserData, user: User?){
+        guard let uid = user?.uid else {
+            print("User not logged in")
+            return
+        }
+        
+        let referance = db.collection("users").document(uid)
+        setData(data: data, referance: referance)
+        print("Data set succesflully")
+    }
+    
+    func getUserData(user: User?){
+        guard let uid = user?.uid else {
+            print("User not looged in")
+            return
+        }
+        
+        let ref = db.collection("users").document(uid)
+        
+        ref.getDocument()
+            .sink(receiveCompletion: { completion in
+                switch completion{
+                case .failure(let error):
+                    print(error)
+                case .finished:
+                    print("User data fetched succesfully")
+                }
+            }, receiveValue: { snapshotData in
+                self.userData = self.decodeDocumentSnapshot(document: snapshotData)
+            })
+            .store(in: &cancellables)
+    }
+    
+    func fetchUser(uid: String) -> AnyPublisher<UserData, Error>{
+        print("ON 1")
+        let referance = db.collection("users").document(uid)
+        return Future<UserData, Error> { promise in
+            referance.getDocument{ documentSnapshot, error in
+                if let error = error {
+                    print("Error whie fetching user data")
+                    promise(.failure(error))
+                } else if let snapshot = documentSnapshot {
+                    print("ON 2")
+                    let user = self.decodeDocumentSnapshot(document: snapshot)
+                    print(user)
+                    if let user = user {
+                        promise(.success(user))
+                    }
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func decodeDocumentSnapshot(document snapshot: DocumentSnapshot) -> UserData?{
+        let result = Result { try snapshot.data(as: UserData.self)}
+        switch(result){
+        case .failure(_):
+            return nil
+        case .success(let userData):
+            return userData
+        }
+    }
+    
+    
+    //Yet another inconvinience, we cannot make query like "fistname" LIKE %searchTerm%
     func searchUser(name: String) -> AnyPublisher<QuerySnapshot?, Error>{
         return Future<QuerySnapshot?, Error> { promise in
             self.db.collection("users")
-                .whereField("firstName", isLessThanOrEqualTo: name + "\u{f8ff}")
+                .whereField("firstName", isGreaterThanOrEqualTo: name.lowercased())
+                .whereField("firstName", isLessThanOrEqualTo: name.lowercased() + "\u{f8ff}")
                 .getDocuments { (snapshot, error) in
                     if let error = error {
                         promise(.failure(error))
@@ -59,87 +134,36 @@ class FirestoreManager: ObservableObject {
         .eraseToAnyPublisher()
     }
     
-    func sendMessage(_ message: String, from: String, to: String) {
-        var document = db.collection("Messages").document(from).collection(to).document()
+
+    func sendMessage(_ message: String, sendBy: String, sendTo: String) {
+        let messageData = Message(content: message, sentBy: sendBy, sentAt: Date())
         
-        let messageFrom = ["from": from, "to": to, "content": message, "timestamp": Timestamp()] as [String : Any]
+        //Chats
+        var reciverChatReferance = self.db.collection("chats").document(sendTo).collection("with").document(sendBy)
+        var sederChatReferance = self.db.collection("chats").document(sendBy).collection("with").document(sendTo)
+    
+        self.setData(data: messageData, referance: sederChatReferance)
+        self.setData(data: messageData, referance: reciverChatReferance)
         
-        document.setData(messageFrom) { error in
-            if let error = error {
-                print(error)
-            }
-        }
+        reciverChatReferance = self.db.collection("chats").document(sendTo).collection("with").document(sendBy).collection("messages").document()
+        sederChatReferance = self.db.collection("chats").document(sendBy).collection("with").document(sendTo).collection("messages").document()
         
-        document = db.collection("Messages").document(to).collection(from).document()
-        document.setData(messageFrom) { error in
-            if let error = error {
-                print(error)
-            }
-        }
+        //Last message send
+        self.setData(data: messageData, referance: reciverChatReferance)
+        self.setData(data: messageData, referance: sederChatReferance)
     }
     
-    /*
-     // MARK: - Snapshot Publisher
-
-         /// Registers a publisher that publishes document snapshot changes.
-         ///
-         /// - Parameter includeMetadataChanges: Whether metadata-only changes (i.e. only
-         ///   `DocumentSnapshot.metadata` changed) should trigger snapshot events.
-         /// - Returns: A publisher emitting `DocumentSnapshot` instances.
-         func snapshotPublisher(includeMetadataChanges: Bool = false)
-           -> AnyPublisher<DocumentSnapshot, Error> {
-           let subject = PassthroughSubject<DocumentSnapshot, Error>()
-           let listenerHandle =
-             addSnapshotListener(includeMetadataChanges: includeMetadataChanges) { snapshot, error in
-               if let error = error {
-                 subject.send(completion: .failure(error))
-               } else if let snapshot = snapshot {
-                 subject.send(snapshot)
-               }
-             }
-           return subject
-             .handleEvents(receiveCancel: listenerHandle.remove)
-             .eraseToAnyPublisher()
-         }
-     */
-    
-    func fetchMessages(from: String, to: String) -> AnyPublisher<QuerySnapshot, Error>{
-        self.db.collection("Messages").document(from).collection(to)
+    func fetchMessages(sendTo: String, sendBy: String) -> AnyPublisher<QuerySnapshot, Error>{
+        self.db.collection("chats").document(sendBy).collection("with").document(sendTo).collection("messages")
             .snapshotPublisher()
             .eraseToAnyPublisher()
-//        return Future<QuerySnapshot?, Error> { promise in
-//            let listener = referance.addSnapshotListener { (snapshot, error ) in
-//                if let error = error {
-//                    promise(.failure(error))
-//                    return
-//                } else {
-//                    promise(.success(snapshot))
-//                }
-//            }
-//        }
-//        .eraseToAnyPublisher()
     }
     
-    func fetchUserData(user: User?) {
-            guard let currentUser = user else {
-                print("XD")
-                return
-            }
-        
-            let userRef = db.collection("users").document(currentUser.uid)
-            
-            userRef.getDocument { [weak self] document, error in
-                if let document = document, document.exists {
-                    let data = document.data()
-                    let firstName = data?["firstName"] as? String ?? ""
-                    let lastName = data?["lastName"] as? String ?? ""
-                    
-                    self?.userData = UserData(firstName: firstName, lastName: lastName)
-                } else {
-                    print("Document does not exist or there was an error: \(error?.localizedDescription ?? "")")
-                }
-            }
-        }
+    func fetchChats(sendBy: String) -> AnyPublisher<QuerySnapshot, Error>{
+        self.db.collection("chats").document(sendBy).collection("with")
+            .snapshotPublisher()
+            .eraseToAnyPublisher()
+    }
     
     init() {
         self.db = Firestore.firestore()

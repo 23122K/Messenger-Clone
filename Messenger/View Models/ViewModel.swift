@@ -13,6 +13,8 @@ class ViewModel: ObservableObject {
     @Injected(\.model) var model
     var cancellables = Set<AnyCancellable>()
     
+    @Published var image: UIImage?
+    
     var isAuthenticated: Bool {
         model.isAuthenticated
     }
@@ -31,9 +33,17 @@ class ViewModel: ObservableObject {
     
     var userData: UserData {
         guard let user = model.userData else {
-            return UserData(firstName: "John", lastName: "Doe")
+            return UserData(firstName: "John", lastName: "Doe", imageURL: nil)
         }
         return user
+    }
+    
+    var chats: Array<UserData> {
+        model.chats
+    }
+    
+    func fetchChats(){
+        model.fetchChats()
     }
     
     func signOut() {
@@ -42,6 +52,14 @@ class ViewModel: ObservableObject {
     
     func searchUser(name: String) {
         model.searchUser(name: name)
+    }
+    
+    func persistImage(){
+        guard let image = image else {
+            print("NO image")
+            return
+        }
+        model.saveUserImage(image: image)
     }
     
     init() {
@@ -58,6 +76,11 @@ class ViewModel: ObservableObject {
         model.$userData
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.objectWillChange.send()}
+            .store(in: &cancellables)
+        
+        model.$chats
+            .receive(on: DispatchQueue.main)
+            .sink{ [weak self] _ in self?.objectWillChange.send()}
             .store(in: &cancellables)
         
         model.$userFriends
