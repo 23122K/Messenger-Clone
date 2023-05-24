@@ -2,18 +2,16 @@
 //  DependencyInjectionManager.swift
 //  Messenger
 //
-//  Created by Patryk Maciąg on 17/05/2023.
+//  Created by Antoine van der Lee <3
 //
 
 import Foundation
 
-//MARK: Protocol
 public protocol InjectionKey {
     associatedtype Value
     static var currentValue: Self.Value {get set}
 }
 
-//MARK: Struct providing acces to injected dependencies
 struct InjectedValues {
     /// This is only used as an accessor to the computed properties within extensions of `InjectedValues`.
     private static var current = InjectedValues()
@@ -31,7 +29,6 @@ struct InjectedValues {
     }
 }
 
-//MARK: Property wrapper
 @propertyWrapper
 struct Injected<T> {
     private let keyPath: WritableKeyPath<InjectedValues, T>
@@ -45,7 +42,7 @@ struct Injected<T> {
     }
 }
 
-//MARK: MODEL Extension
+//MARK: List ofe depencencies
 extension InjectedValues {
     var model: Model {
         get { Self[ModelKey.self] }
@@ -53,30 +50,7 @@ extension InjectedValues {
     }
 }
 
-//extension InjectedValues {
-//    var authenticationService: AuthenticationService {
-//        get { Self[AuthenticationServiceKey.self] }
-//        set { Self[AuthenticationServiceKey.self] = newValue }
-//    }
-//}
-//
-//extension InjectedValues {
-//    var firestoreManager: FirestoreManager {
-//        get { Self[FirestoreManagerKey.self] }
-//        set { Self[FirestoreManagerKey.self] = newValue }
-//    }
-//}
 
-
-//MARK: List ofe depencencies
 private struct ModelKey: InjectionKey {
     static var currentValue: Model = Model()
 }
-
-//private struct AuthenticationServiceKey: InjectionKey {
-//    static var currentValue: AuthenticationService = AuthenticationService()
-//}
-//
-//private struct FirestoreManagerKey: InjectionKey {
-//    static var currentValue: FirestoreManager = FirestoreManager()
-//}

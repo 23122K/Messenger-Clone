@@ -12,7 +12,7 @@ struct ChatView: View {
     @ObservedObject var vm = ChatViewModel()
     
     @State var content: String = ""
-    let user: UserData
+    let user: ChatUser
     var body: some View {
         VStack{
             ScrollView(showsIndicators: false) {
@@ -92,6 +92,6 @@ struct ChatView: View {
 
 struct ChatView_Previews: PreviewProvider {
     static var previews: some View {
-        ChatView(user: UserData(firstName: "Bogdan", lastName: "Maj", imageURL: nil))
+        ChatView(user: ChatUser(firstName: "Bogdan", lastName: "Maj", imageURL: nil))
     }
 }

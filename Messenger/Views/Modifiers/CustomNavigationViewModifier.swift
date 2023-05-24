@@ -26,7 +26,7 @@ struct CustomNavigationViewModifier: ViewModifier {
                 Image(systemName: "chevron.left")
                 Text(title)
             }
-            .foregroundColor(.black.opacity(0.7))
+            .foregroundColor(.blue.opacity(0.9))
         })
     }
 }

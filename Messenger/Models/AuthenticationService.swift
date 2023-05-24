@@ -18,7 +18,8 @@ class AuthenticationService: ObservableObject {
     
     @Published var user: User?
     @Published var isAuthenticated = false
-    @Published var userData: UserData?
+    @Published var userData: ChatUser?
+    @Published var authenticationError: Error?
     
     func signIn(email: String, password: String) -> AnyPublisher<Void, Error> {
         return Future<Void, Error> { promise in
@@ -63,7 +64,7 @@ class AuthenticationService: ObservableObject {
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case.failure(let error):
-                    print(error)
+                    self.authenticationError = error
                 case.finished:
                     self.user = nil
                     self.isAuthenticated = false
