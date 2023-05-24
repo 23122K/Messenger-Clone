@@ -27,7 +27,9 @@ struct SignUpView: View {
             CustomSecureField(placeholder: "Confirm password", corners: [.bottomLeft, .bottomRight], text: $vm.confirmPassword)
                 .padding(.bottom, 20)
             
-            ErrorMessage(description: vm.error.description, isShown: vm.error.occured)
+            Checkbox(title: "Remember me", isChecked: $vm.rememberMe)
+                .padding(.bottom, 20)
+                .padding(.leading)
             
             PrimaryButton(isActive: vm.isActive, content: "Sign up")
                 .disabled(!vm.isActive)

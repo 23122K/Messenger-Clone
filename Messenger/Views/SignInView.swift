@@ -22,26 +22,24 @@ struct SignInView: View {
                         .padding()
                     
                     VStack {
-                        Text("Log in and immerse")
-                        Text("in seamless messaging")
+                        Text("Log in with yor phone")
+                        Text("number or email address")
                     }
                     .padding()
                     .font(.system(size: 25, weight: .bold))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
-                    CustomTextField(placeholder: "Email address", corners: [.topLeft, .topRight], text: $vm.email)
+                    CustomTextField(placeholder: "Phone number or email", corners: [.topLeft, .topRight], text: $vm.email)
                     CustomSecureField(placeholder: "Password", corners: [.bottomLeft, .bottomRight], text: $vm.password)
-                        .padding(.bottom)
-                    
-                    ErrorMessage(description: vm.error.description, isShown: vm.error.occured)
-                    
+                    Checkbox(title: "Remember me", isChecked: $vm.rememberMe)
+                        .padding()
                     VStack{
                         PrimaryButton(isActive: vm.isValid, content: "Sign in")
                             .disabled(!vm.isValid)
                             .onTapGesture {
                                 if(vm.isValid){ vm.signIn() }
                             }
-                            .padding(.bottom, 2)
+                            .padding(.bottom, 5)
                         NavigationLink(destination: SignUpView()
                             .withDismissName(title: "Sign in"), label: {
                                 PrimaryButton(isActive: true, content: "Create new accout")

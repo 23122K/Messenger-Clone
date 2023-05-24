@@ -31,29 +31,30 @@ struct ChatListView: View {
                         .onSubmit {
                             vm.searchUser(name: text)
                         }
-                    switch isClicked {
-                    case false:
-                        ScrollView(.horizontal, showsIndicators: false, content: {
-                            HStack{
-                                ForEach(vm.chats){ user in
-                                    NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
-                                        Bubble(user: user)
-                                            .padding(.leading)
-                                    })
-                                }
+                    ScrollView(.horizontal, showsIndicators: false, content: {
+                        HStack{
+                            ForEach(vm.chats){ user in
+                                NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
+                                    Bubble(user: user)
+                                        .padding(.trailing)
+                                })
                             }
-                        })
+                        }
                         .padding(.top, 10)
-                        ForEach(vm.chats){ user in
+                        .padding(.horizontal)
+                    })
+                    switch isClicked {
+                    case true:
+                        ForEach(vm.listOfUsers){ user in
                             NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
-                                Chat(user: user)
+                                MessageView(user: user)
                                     .padding(.trailing)
                             })
                         }
-                    case true:
-                        ForEach(vm.users){ user in
+                    case false:
+                        ForEach(vm.chats){ user in
                             NavigationLink(destination: ChatView(user: user).withDismissName(title: "\(user.firstName) \(user.lastName)"), label: {
-                                Chat(user: user, showDetails: false)
+                                MessageView(user: user)
                                     .padding(.trailing)
                             })
                         }

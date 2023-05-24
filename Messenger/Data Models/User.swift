@@ -6,23 +6,23 @@
 //
 
 import Foundation
-import SwiftUI
 import FirebaseFirestoreSwift
 
-struct ChatUser: Identifiable, Codable {
+struct UserData: Identifiable, Codable {
     @DocumentID var id: String?
     let firstName: String
     let lastName: String
     let imageURL: String?
-    var message: Message? = nil
-    var image: UIImage? = nil
+    var lastMessage: String? = nil
+    var lastMessageTimestamp: Date? = nil
     
-    init(firstName: String, lastName: String, imageURL: String? = nil, message: Message? = nil, image: UIImage? = nil) {
+    
+    init(firstName: String, lastName: String, imageURL: String? = nil, lastMessage: String = "", lastMessageTimestamp: Date? = nil ) {
         self.firstName = firstName
         self.lastName = lastName
         self.imageURL = imageURL
-        self.message = message
-        self.image = image
+        self.lastMessage = lastMessage
+        self.lastMessageTimestamp = lastMessageTimestamp
     }
     
     enum CodingKeys: CodingKey {
@@ -31,9 +31,10 @@ struct ChatUser: Identifiable, Codable {
         case lastName
         case imageURL
     }
+    
 }
 
-extension ChatUser {
+extension UserData {
     var unwrapedId: String {
         return id!
     }

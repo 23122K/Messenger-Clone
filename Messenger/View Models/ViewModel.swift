@@ -27,19 +27,19 @@ class ViewModel: ObservableObject {
         model.messages
     }
     
-    var users: Array<ChatUser> {
+    var listOfUsers: Array<UserData> {
         model.userFriends
     }
     
-    var userData: ChatUser {
+    var userData: UserData {
         guard let user = model.userData else {
-            return ChatUser(firstName: "John", lastName: "Doe", imageURL: nil)
+            return UserData(firstName: "John", lastName: "Doe", imageURL: nil)
         }
         return user
     }
     
-    var chats: Array<ChatUser> {
-        model.chats.sorted(by: {$0.message?.sentAt ?? Date() > $1.message?.sentAt ?? Date()})
+    var chats: Array<UserData> {
+        model.chats
     }
     
     func fetchChats(){
@@ -56,9 +56,9 @@ class ViewModel: ObservableObject {
     
     func persistImage(){
         guard let image = image else {
+            print("NO image")
             return
         }
-        
         model.saveUserImage(image: image)
     }
     
