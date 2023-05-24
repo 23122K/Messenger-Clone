@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct EmptyChatView: View {
-    let reciver: UserData
+    let reciver: ChatUser
     var body: some View {
         VStack(alignment: .center){
             Circle()
@@ -40,7 +40,7 @@ struct EmptyChatView: View {
 
 struct EmptyChatView_Previews: PreviewProvider {
     static var previews: some View {
-        EmptyChatView(reciver: UserData(firstName: "Patryk", lastName: "Maciag"))
+        EmptyChatView(reciver: ChatUser(firstName: "Patryk", lastName: "Maciag"))
     }
 }
 

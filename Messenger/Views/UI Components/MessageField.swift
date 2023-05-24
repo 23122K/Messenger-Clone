@@ -9,7 +9,7 @@ import SwiftUI
 
 struct MessageField: View {
     @ObservedObject var vm: ChatViewModel
-    let user: UserData
+    let user: ChatUser
     @Binding var content: String
     @State var isActive: Bool = false
     
@@ -72,7 +72,7 @@ struct MessageField: View {
 
 struct MessageField_Previews: PreviewProvider {
     static var previews: some View {
-        MessageField(vm: ChatViewModel(), user: UserData(firstName: "Patryk", lastName: "Maciag"), content: .constant("Hello"))
+        MessageField(vm: ChatViewModel(), user: ChatUser(firstName: "Patryk", lastName: "Maciag"), content: .constant("Hello"))
     }
 }
 

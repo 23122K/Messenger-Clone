@@ -20,7 +20,7 @@ class FirebaseStorageManager: ObservableObject {
     func persistImage(image: UIImage, uid: String) -> AnyPublisher<URL, Error>{
         let referance = storage.reference(withPath: uid)
         return Future<URL, Error> { promise in
-            guard let image = image.jpegData(compressionQuality: 0.5) else {
+            guard let image = image.jpegData(compressionQuality: 0.3) else {
                 return
             }
             
@@ -34,13 +34,10 @@ class FirebaseStorageManager: ObservableObject {
                         switch(completion) {
                         case .failure(let error):
                             promise(.failure(error))
-                        case .finished:
-                            print("Finished")
+                        case .finished: ()
                         }
                     }, receiveValue: { url in
-                        print("URL fetched")
                         promise(.success(url))
-                        
                     })
                     .store(in: &self.cancellables)
             }

@@ -17,16 +17,16 @@ class FirestoreManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var listener: ListenerRegistration?
     
-    @Published var userData: UserData?
+    @Published var userData: ChatUser?
+    @Published var firestoreError: Error?
     
     func setData<T: Codable>(data: T, referance: DocumentReference){
         referance.setData(from: data.self)
             .sink(receiveCompletion: { completion in
                 switch completion{
                 case .failure(let error):
-                    print(error)
-                case .finished:
-                    print("Data set succesfully")
+                    self.firestoreError = error
+                case .finished: ()
                 }
             }, receiveValue: { _ in })
             .store(in: &cancellables)
@@ -35,9 +35,7 @@ class FirestoreManager: ObservableObject {
     func updateData(data: [AnyHashable : Any], referance: DocumentReference){
         referance.updateData(data) { error in
             if let error = error {
-                print(error)
-            } else {
-                print("Data updated")
+                self.firestoreError = error
             }
         }
     }
@@ -47,25 +45,22 @@ class FirestoreManager: ObservableObject {
         let referance = db.collection("users").document(uid)
         referance.updateData(data) { error in
             if let error = error{
-                print(error)
+                self.firestoreError = error
             }
         }
     }
     
-    func setUserData(data: UserData, user: User?){
+    func setChatUser(data: ChatUser, user: User?){
         guard let uid = user?.uid else {
-            print("User not logged in")
             return
         }
         
         let referance = db.collection("users").document(uid)
         setData(data: data, referance: referance)
-        print("Data set succesflully")
     }
     
-    func getUserData(user: User?){
+    func getChatUser(user: User?){
         guard let uid = user?.uid else {
-            print("User not looged in")
             return
         }
         
@@ -75,9 +70,8 @@ class FirestoreManager: ObservableObject {
             .sink(receiveCompletion: { completion in
                 switch completion{
                 case .failure(let error):
-                    print(error)
-                case .finished:
-                    print("User data fetched succesfully")
+                    self.firestoreError = error
+                case .finished: ()
                 }
             }, receiveValue: { snapshotData in
                 self.userData = self.decodeDocumentSnapshot(document: snapshotData)
@@ -85,18 +79,14 @@ class FirestoreManager: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func fetchUser(uid: String) -> AnyPublisher<UserData, Error>{
-        print("ON 1")
+    func fetchUser(uid: String) -> AnyPublisher<ChatUser, Error>{
         let referance = db.collection("users").document(uid)
-        return Future<UserData, Error> { promise in
+        return Future<ChatUser, Error> { promise in
             referance.getDocument{ documentSnapshot, error in
                 if let error = error {
-                    print("Error whie fetching user data")
                     promise(.failure(error))
                 } else if let snapshot = documentSnapshot {
-                    print("ON 2")
                     let user = self.decodeDocumentSnapshot(document: snapshot)
-                    print(user)
                     if let user = user {
                         promise(.success(user))
                     }
@@ -106,8 +96,8 @@ class FirestoreManager: ObservableObject {
         .eraseToAnyPublisher()
     }
     
-    func decodeDocumentSnapshot(document snapshot: DocumentSnapshot) -> UserData?{
-        let result = Result { try snapshot.data(as: UserData.self)}
+    func decodeDocumentSnapshot(document snapshot: DocumentSnapshot) -> ChatUser?{
+        let result = Result { try snapshot.data(as: ChatUser.self)}
         switch(result){
         case .failure(_):
             return nil
@@ -117,12 +107,11 @@ class FirestoreManager: ObservableObject {
     }
     
     
-    //Yet another inconvinience, we cannot make query like "fistname" LIKE %searchTerm%
+    //Advanced queries not for free hm?
     func searchUser(name: String) -> AnyPublisher<QuerySnapshot?, Error>{
         return Future<QuerySnapshot?, Error> { promise in
             self.db.collection("users")
-                .whereField("firstName", isGreaterThanOrEqualTo: name.lowercased())
-                .whereField("firstName", isLessThanOrEqualTo: name.lowercased() + "\u{f8ff}")
+                .whereField("firstName", isEqualTo: name)
                 .getDocuments { (snapshot, error) in
                     if let error = error {
                         promise(.failure(error))
@@ -135,20 +124,22 @@ class FirestoreManager: ObservableObject {
     }
     
 
+    //Creates a databse structure, duplicates data and assign it to users between conversation take place
     func sendMessage(_ message: String, sendBy: String, sendTo: String) {
         let messageData = Message(content: message, sentBy: sendBy, sentAt: Date())
         
-        //Chats
+        //Creates a sort of collection for each user about whith whom he has conversation
         var reciverChatReferance = self.db.collection("chats").document(sendTo).collection("with").document(sendBy)
         var sederChatReferance = self.db.collection("chats").document(sendBy).collection("with").document(sendTo)
     
+        //Sets latest message
         self.setData(data: messageData, referance: sederChatReferance)
         self.setData(data: messageData, referance: reciverChatReferance)
         
+        //Sets messages
         reciverChatReferance = self.db.collection("chats").document(sendTo).collection("with").document(sendBy).collection("messages").document()
         sederChatReferance = self.db.collection("chats").document(sendBy).collection("with").document(sendTo).collection("messages").document()
         
-        //Last message send
         self.setData(data: messageData, referance: reciverChatReferance)
         self.setData(data: messageData, referance: sederChatReferance)
     }

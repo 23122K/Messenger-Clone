@@ -17,50 +17,45 @@ class Model: ObservableObject {
     //MARK: Properties driving UI
     @Published var isAuthenticated: Bool = false
     @Published var user: User?
-    @Published var authUser: User?
-    @Published var userData: UserData?
-    @Published var userFriends = Array<UserData>()
+    @Published var userData: ChatUser?
+    @Published var userFriends = Array<ChatUser>()
     @Published var messages = Array<Message>()
-    @Published var chats = Array<UserData>()
+    @Published var chats = Array<ChatUser>()
+    
+    @Published var error: Error? 
     
     //MARK: AuthenticationService functions
     func signIn(email: String, password: String) {
         authenticationService.signIn(email: email, password: password)
-            //Maybe add casting error into a string?
             .sink(receiveCompletion: { [self] completion in
                 switch(completion){
-                case .failure(let err):
-                    print(err)
+                case .failure(let error):
+                    self.error = error
                 case .finished:
-                    firestoreManager.getUserData(user: self.user)
+                    firestoreManager.getChatUser(user: self.user)
                 }
             }, receiveValue: { _ in })
             .store(in: &cancellables)
     }
     
     func signUp(email: String, password: String, firstName: String, lastName: String) {
-        print("Sign up from model")
         authenticationService.signUp(email: email, password: password, firstName: firstName, lastName: lastName)
             .sink(receiveCompletion: { [self] completion in
             switch(completion){
-            case .failure(let err):
-                print(err)
+            case .failure(let error):
+                self.error = error
             case .finished:
-                print("Sign up seccesfull")
-                let userData = UserData(firstName: firstName, lastName: lastName, imageURL: nil)
-                print("Firestoremanager take the rest of the work")
-                firestoreManager.setUserData(data: userData, user: self.user)
-                firestoreManager.getUserData(user: self.user)
+                let user = ChatUser(firstName: firstName, lastName: lastName, imageURL: nil)
+                firestoreManager.setChatUser(data: user, user: self.user)
+                firestoreManager.getChatUser(user: self.user)
             }
         }, receiveValue: { _ in })
         .store(in: &cancellables)
     }
     
-    
     func signOut() {
         authenticationService.signOut()
     }
-    
     
     //MARK: Firestore functions
     func searchUser(name: String) {
@@ -69,10 +64,9 @@ class Model: ObservableObject {
                 guard let documents = $0?.documents else {
                     return
                 }
-                
-                var users = Array<UserData>()
+                var users = Array<ChatUser>()
                 for document in documents {
-                    let user = try? document.data(as: UserData.self)
+                    let user = try? document.data(as: ChatUser.self)
                     if let user = user {
                         users.append(user)
                     }
@@ -84,11 +78,14 @@ class Model: ObservableObject {
     }
     
     func sendMessage(content: String, sendTo: String){
-        firestoreManager.sendMessage(content, sendBy: user!.uid, sendTo: sendTo)
+        guard let uid = user?.uid else {
+            return
+        }
+        
+        firestoreManager.sendMessage(content, sendBy: uid, sendTo: sendTo)
     }
     
     func fetchChats() {
-        print("FETCHING CHATS")
         guard let uid = user?.uid else {
             return
         }
@@ -96,10 +93,9 @@ class Model: ObservableObject {
         firestoreManager.fetchChats(sendBy: uid)
             .sink(receiveCompletion: { completion in
                 switch completion {
-                case .failure(let err):
-                    print(err)
-                case .finished:
-                    print("Finished")
+                case .failure(let error):
+                    self.error = error
+                case .finished: ()
                 }
             }, receiveValue: { querySnapshot in
                 for document in querySnapshot.documents {
@@ -108,35 +104,43 @@ class Model: ObservableObject {
                         if let message = message {
                             print(message.content)
                             self.chatsToReadableChat(user: document.documentID, message: message)
+                            
                         }
-                        //self.userChats.append(document.documentID)
-                        //self.chatsToReadableChat()
                     }
                 }
             })
             .store(in: &cancellables)
     }
     
-    func chatsToReadableChat(user: String, message: Message) {
+    private func appendChatUser(chat user: ChatUser){
+        if let index = self.chats.firstIndex(where: {$0.unwrapedId == user.unwrapedId}) {
+            self.chats.remove(at: index)
+            self.chats.insert(user, at: index)
+        } else {
+            self.chats.append(user)
+        }
+    }
+    
+    //Transforms an user ID to user data, than appends data to an array.
+    private func chatsToReadableChat(user: String, message: Message) {
         firestoreManager.fetchUser(uid: user)
-            .print("fetchUser")
             .sink(receiveCompletion: { completion in
-                print(completion)
-            }, receiveValue: { userData in
-                print("ON 2")
-                var user = userData
-                user.lastMessage = message.content
-                user.lastMessageTimestamp = message.sentAt
-                if let index = self.chats.firstIndex(where: {$0.unwrapedId == user.unwrapedId}) {
-                    self.chats.remove(at: index)
-                    self.chats.append(user)
-                } else {
-                    self.chats.append(user)
+                switch completion {
+                case .failure(let error):
+                    self.error = error
+                case .finished: ()
                 }
+            }, receiveValue: { chatUser in
+                var user = chatUser
+                user.message = message
+                self.appendChatUser(chat: user)
+                self.fetchImage(of: user)
             })
             .store(in: &cancellables)
     }
 
+    //Fetches messages in realtime
+    //Completion is absolute as listener never emits it
     func fetchMessages(sendTo: String){
         if let sendBy = user?.uid {
             firestoreManager.fetchMessages(sendTo: sendTo, sendBy: sendBy)
@@ -158,10 +162,8 @@ class Model: ObservableObject {
     }
     
     //MARK: Firestorage functions
-    
     func saveUserImage(image: UIImage){
         guard let uid = user?.uid else {
-            print("No user logged in <saveuserImage>")
             return
         }
         
@@ -169,9 +171,8 @@ class Model: ObservableObject {
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .failure(let error):
-                    print(error)
+                    self.error = error
                 case .finished:
-                    print("Finished")
                     if let url = self.url?.absoluteString {
                         self.firestoreManager.setImage(imageURL: url, uid: uid)
                     }
@@ -182,9 +183,28 @@ class Model: ObservableObject {
             .store(in: &cancellables)
         
     }
-    //MARK: CoreData functions
-    //Maybe in the future
     
+    //MARK: Other
+    func fetchImage(of user: ChatUser) {
+        guard let imageURL = user.imageURL, let url = URL(string: imageURL) else {
+            self.appendChatUser(chat: user)
+            return
+        }
+        
+        var user = user
+        URLSession.shared.dataTaskPublisher(for: url)
+            .sink(receiveCompletion: { _ in
+            },receiveValue: {
+                guard let response = $0.response as? HTTPURLResponse, (200...299).contains(response.statusCode) else {
+                    return
+                }
+                
+                user.image = UIImage(data: $0.data)
+                self.appendChatUser(chat: user)
+            })
+            .store(in: &self.cancellables)
+    }
+ 
     //MARK: Init
     init() {
         self.firebasestorageManager = FirebaseStorageManager()
@@ -201,6 +221,9 @@ class Model: ObservableObject {
         //Waching changes in FirestoreManager
         firestoreManager.$userData
             .assign(to: &$userData)
+        
+        firestoreManager.$firestoreError
+            .assign(to: &$error)
         
     }
     
